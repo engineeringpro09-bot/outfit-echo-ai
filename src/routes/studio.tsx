@@ -2,6 +2,18 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 import { UploadCloud, Sparkles, RotateCcw, Wand2, User, Shirt } from "lucide-react";
 import { Nav } from "@/components/Nav";
+import { useServerFn } from "@tanstack/react-start";
+import { generateTryOn } from "@/lib/tryon.functions";
+import { toast } from "sonner";
+
+function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result as string);
+    r.onerror = reject;
+    r.readAsDataURL(file);
+  });
+}
 
 export const Route = createFileRoute("/studio")({
   head: () => ({
