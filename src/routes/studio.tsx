@@ -144,22 +144,21 @@ function Studio() {
                 </div>
               )}
 
-              {userImage && (
+              {userImage && status !== "done" && (
                 <img
                   src={userImage}
                   alt="You"
                   className={`absolute inset-0 h-full w-full object-cover transition duration-700 ${
-                    status === "scanning" ? "saturate-0 opacity-80" : status === "done" ? "" : "opacity-90"
+                    status === "scanning" ? "saturate-0 opacity-80" : "opacity-90"
                   }`}
                 />
               )}
 
-              {/* Garment overlay (mocked composite) */}
-              {clothImage && status === "done" && (
+              {resultImage && status === "done" && (
                 <img
-                  src={clothImage}
-                  alt="Garment overlay"
-                  className="absolute left-1/2 top-[38%] w-[62%] -translate-x-1/2 mix-blend-screen opacity-90"
+                  src={resultImage}
+                  alt="AI try-on result"
+                  className="absolute inset-0 h-full w-full object-cover"
                 />
               )}
 
