@@ -192,7 +192,7 @@ function Studio() {
                 {status === "scanning" ? "Generating…" : status === "done" ? "Regenerate Look" : "Generate Try-On"}
               </button>
               <p className="mt-3 text-center font-mono text-[10px] text-muted-foreground">
-                Demo render · production engine adds pose-aware warping & garment physics.
+                Powered by Gemini 2.5 Flash Image · real AI garment transfer.
               </p>
             </div>
           </div>
