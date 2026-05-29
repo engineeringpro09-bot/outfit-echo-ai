@@ -32,38 +32,49 @@ type Slot = "user" | "cloth";
 function Studio() {
   const [userImage, setUserImage] = useState<string | null>(null);
   const [clothImage, setClothImage] = useState<string | null>(null);
+  const [resultImage, setResultImage] = useState<string | null>(null);
   const [status, setStatus] = useState<"idle" | "scanning" | "done">("idle");
   const [progress, setProgress] = useState(0);
+  const tryOn = useServerFn(generateTryOn);
 
-  const onPick = (e: React.ChangeEvent<HTMLInputElement>, slot: Slot) => {
+  const onPick = async (e: React.ChangeEvent<HTMLInputElement>, slot: Slot) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const url = URL.createObjectURL(file);
+    const url = await fileToDataUrl(file);
     if (slot === "user") setUserImage(url);
     else setClothImage(url);
     setStatus("idle");
     setProgress(0);
+    setResultImage(null);
   };
 
-  const generate = () => {
+  const generate = async () => {
     if (!userImage || !clothImage) return;
     setStatus("scanning");
     setProgress(0);
+    setResultImage(null);
     const id = setInterval(() => {
-      setProgress((p) => {
-        if (p >= 100) {
-          clearInterval(id);
-          setStatus("done");
-          return 100;
-        }
-        return p + 4;
-      });
-    }, 60);
+      setProgress((p) => (p < 92 ? p + 2 : p));
+    }, 200);
+    try {
+      const { image } = await tryOn({ data: { userImage, garmentImage: clothImage } });
+      setResultImage(image);
+      setProgress(100);
+      setStatus("done");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Generation failed";
+      toast.error(msg);
+      setStatus("idle");
+      setProgress(0);
+    } finally {
+      clearInterval(id);
+    }
   };
 
   const reset = () => {
     setUserImage(null);
     setClothImage(null);
+    setResultImage(null);
     setStatus("idle");
     setProgress(0);
   };
