@@ -2,6 +2,18 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 import { UploadCloud, Sparkles, RotateCcw, Wand2, User, Shirt } from "lucide-react";
 import { Nav } from "@/components/Nav";
+import { useServerFn } from "@tanstack/react-start";
+import { generateTryOn } from "@/lib/tryon.functions";
+import { toast } from "sonner";
+
+function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result as string);
+    r.onerror = reject;
+    r.readAsDataURL(file);
+  });
+}
 
 export const Route = createFileRoute("/studio")({
   head: () => ({
@@ -20,38 +32,49 @@ type Slot = "user" | "cloth";
 function Studio() {
   const [userImage, setUserImage] = useState<string | null>(null);
   const [clothImage, setClothImage] = useState<string | null>(null);
+  const [resultImage, setResultImage] = useState<string | null>(null);
   const [status, setStatus] = useState<"idle" | "scanning" | "done">("idle");
   const [progress, setProgress] = useState(0);
+  const tryOn = useServerFn(generateTryOn);
 
-  const onPick = (e: React.ChangeEvent<HTMLInputElement>, slot: Slot) => {
+  const onPick = async (e: React.ChangeEvent<HTMLInputElement>, slot: Slot) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const url = URL.createObjectURL(file);
+    const url = await fileToDataUrl(file);
     if (slot === "user") setUserImage(url);
     else setClothImage(url);
     setStatus("idle");
     setProgress(0);
+    setResultImage(null);
   };
 
-  const generate = () => {
+  const generate = async () => {
     if (!userImage || !clothImage) return;
     setStatus("scanning");
     setProgress(0);
+    setResultImage(null);
     const id = setInterval(() => {
-      setProgress((p) => {
-        if (p >= 100) {
-          clearInterval(id);
-          setStatus("done");
-          return 100;
-        }
-        return p + 4;
-      });
-    }, 60);
+      setProgress((p) => (p < 92 ? p + 2 : p));
+    }, 200);
+    try {
+      const { image } = await tryOn({ data: { userImage, garmentImage: clothImage } });
+      setResultImage(image);
+      setProgress(100);
+      setStatus("done");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Generation failed";
+      toast.error(msg);
+      setStatus("idle");
+      setProgress(0);
+    } finally {
+      clearInterval(id);
+    }
   };
 
   const reset = () => {
     setUserImage(null);
     setClothImage(null);
+    setResultImage(null);
     setStatus("idle");
     setProgress(0);
   };
@@ -121,22 +144,21 @@ function Studio() {
                 </div>
               )}
 
-              {userImage && (
+              {userImage && status !== "done" && (
                 <img
                   src={userImage}
                   alt="You"
                   className={`absolute inset-0 h-full w-full object-cover transition duration-700 ${
-                    status === "scanning" ? "saturate-0 opacity-80" : status === "done" ? "" : "opacity-90"
+                    status === "scanning" ? "saturate-0 opacity-80" : "opacity-90"
                   }`}
                 />
               )}
 
-              {/* Garment overlay (mocked composite) */}
-              {clothImage && status === "done" && (
+              {resultImage && status === "done" && (
                 <img
-                  src={clothImage}
-                  alt="Garment overlay"
-                  className="absolute left-1/2 top-[38%] w-[62%] -translate-x-1/2 mix-blend-screen opacity-90"
+                  src={resultImage}
+                  alt="AI try-on result"
+                  className="absolute inset-0 h-full w-full object-cover"
                 />
               )}
 
@@ -170,7 +192,7 @@ function Studio() {
                 {status === "scanning" ? "Generating…" : status === "done" ? "Regenerate Look" : "Generate Try-On"}
               </button>
               <p className="mt-3 text-center font-mono text-[10px] text-muted-foreground">
-                Demo render · production engine adds pose-aware warping & garment physics.
+                Powered by Gemini 2.5 Flash Image · real AI garment transfer.
               </p>
             </div>
           </div>
