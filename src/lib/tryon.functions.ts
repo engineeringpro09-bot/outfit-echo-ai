@@ -9,10 +9,19 @@ export const generateTryOn = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ data }) => {
-    const apiKey = process.env.LOVABLE_API_KEY;
-    if (!apiKey) throw new Error("LOVABLE_API_KEY missing");
+    const lovableApiKey = process.env.LOVABLE_API_KEY || process.env.VITE_LOVABLE_API_KEY;
+    const openrouterApiKey = process.env.OPENROUTER_API_KEY || process.env.VITE_OPENROUTER_API_KEY;
+    
+    const apiKey = lovableApiKey || openrouterApiKey;
+    if (!apiKey) {
+      throw new Error("Missing API Key. Please add LOVABLE_API_KEY or OPENROUTER_API_KEY to your .env file.");
+    }
 
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const gatewayUrl = lovableApiKey 
+      ? "https://ai.gateway.lovable.dev/v1/chat/completions" 
+      : "https://openrouter.ai/api/v1/chat/completions";
+
+    const res = await fetch(gatewayUrl, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${apiKey}`,
